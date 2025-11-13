@@ -21,50 +21,13 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropou
 from tensorflow.keras.optimizers import *
 
 
-CurrentFolder = Path(".")
-OutputFolder = Path('./cleaned_data')
-
-Path(OutputFolder).mkdir(exist_ok=True)
-
-ImageList = list(OutputFolder.glob('**/*.png'))
-
-def CreateMoveImageThread(img_path: Path):
-    w = img_path.name.split('_')[0]
-    (OutputFolder / w).mkdir(exist_ok=True) # Create the new word folder in OutputPath.
-    shutil.move(img_path, OutputFolder / w / img_path.name)
-
-MoveJoinSet: list[threading.Thread] = [threading.Thread(target=CreateMoveImageThread, args=(i,)) for i in tqdm(ImageList, desc="Spawnning task")]
-
-for thread in tqdm(MoveJoinSet, desc="Starting job"):
-    thread.start()
-
-for thread in tqdm(MoveJoinSet, desc="Moving images"):
-    thread.join()
-
-
-for folder in OutputFolder.iterdir():
-  if not re.match(r"[0-9]",folder.name):
-    continue
-  shutil.rmtree(folder)
-
-print( 'Data Deployment completed.' )
-
-a=0
-b=0
-
-for item in OutputFolder.iterdir():
-  a += 1
-  b += len(list(item.iterdir()))
-
-print('總共: ' + str(a) + '個字, ' + str(b) + '張圖片')
-
 from pathlib import Path
 import random
 import cv2
 import numpy as np
 import shutil
 
-SrcFolder = OutputFolder
+SrcFolder = Path('./cleaned_data')
 DstFolder = Path('./Processed_Handwritten_Data')
 
 if DstFolder.exists():
@@ -82,7 +45,7 @@ def apply_random_transform(image: cv2.Mat) -> cv2.Mat:
     # Random rotation (-180 to 180 degrees)
     angle = random.uniform(-15, 15)
     rotation_matrix = cv2.getRotationMatrix2D((cols, rows), angle, 1)
-    
+
     # # Random scaling (0.75 to 1.25)
     scale = random.uniform(0.8, 1.05)
     scaled_matrix = rotation_matrix.copy()
