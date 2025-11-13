@@ -1,0 +1,19 @@
+[project]
+name = "a"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel>=7.1.0",
+    "keras>=3.12.0",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.4",
+    "opencv-python>=4.11.0.86",
+    "pandas>=2.3.3",
+    "pillow>=12.0.0",
+    "requests>=2.32.5",
+    "scipy>=1.16.3",
+    "tensorflow>=2.20.0",
+    "tqdm>=4.67.1",
+]
