@@ -20,32 +20,6 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.optimizers import *
 
-'''
-繁體中文顯示設定
-'''
-from matplotlib.font_manager import FontProperties
-
-default_type = findfont( FontProperties( family=FontProperties().get_family() ) )
-ttf_path = Path('/'.join( default_type.split('/')[:-1] ))  # 預設字型的資料夾路徑
-
-
-DisplayChinese = Path("./matplotlib_Display_Chinese_in_Colab")
-if not DisplayChinese.exists(  ):
-    !git clone https://github.com/YenLinWu/matplotlib_Display_Chinese_in_Colab --depth 1
-
-msj_name = ""
-for item in DisplayChinese.glob( '*.ttf' ):
-    msj_ttf_path = item.absolute()
-    msj_name = msj_ttf_path.name
-
-
-try:
-    shutil.move( msj_ttf_path, ttf_path )
-except:
-    pass
-finally:
-    shutil.rmtree( DisplayChinese )
-font = FontProperties( fname=ttf_path/msj_name )
 
 CurrentFolder = Path(".")
 OutputFolder = Path('./cleaned_data')
@@ -108,7 +82,7 @@ def apply_random_transform(image: cv2.Mat) -> cv2.Mat:
     # Random rotation (-180 to 180 degrees)
     angle = random.uniform(-15, 15)
     rotation_matrix = cv2.getRotationMatrix2D((cols, rows), angle, 1)
-
+    
     # # Random scaling (0.75 to 1.25)
     scale = random.uniform(0.8, 1.05)
     scaled_matrix = rotation_matrix.copy()
@@ -146,32 +120,6 @@ def process_and_save_images(n=10):
 
 
 process_and_save_images(5)
-
-def Loading_Image( image_path ):
-    img = load_img( image_path )
-    img = tf.constant( np.array(img) )
-    return img
-
-def Show( image, title=None ) :
-    if len( image.shape )>3 :
-        image = tf.squeeze( image, axis=0 )
-
-    plt.imshow( image )
-    if title:
-        plt.title( title, fontproperties=font )
-
-img_list: list[Path] = []
-for folder_path in DstFolder.iterdir():
-    file_names = [item.name for item in  folder_path.iterdir()]
-    for i in range(5) :
-        img_list.append( folder_path / file_names[i] )
-
-plt.gcf().set_size_inches( (12,12) )
-for i in range(20):
-    plt.subplot(4,5,i+1)
-    title = img_list[i].name.split('_')[-3]
-    img = Loading_Image( img_list[i] )
-    Show( img, title )
 
 Num_Classes = len(list( DstFolder.iterdir()))
 Image_Size = ( 300, 300 )
