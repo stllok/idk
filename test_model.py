@@ -35,25 +35,19 @@ from keras.preprocessing import image
 # load trained model
 model = load_model('CNN_Model.keras')
 
-chars = list(set([x.name.split("_")[0] for x in TestDir.iterdir()]))
-
+chars = list([x.name for x in DstFolder.iterdir()][::-1])
+ 
 print(chars)
 
 # predict all photos (loop though the folder)
-for img_file in [random.choice(list(TestDir.iterdir())) for _ in range(5)]:
+for img_file in [random.choice(list(TestDir.iterdir())) for _ in range(30)]:
     img = image.load_img(str(img_file), target_size=(300, 300))
 
     x = image.img_to_array(img)
     x = np.expand_dims(x, axis = 0)
-    pred = model.predict(x)
+    pred = list(sorted(filter(lambda x: x[1] > 0, zip(chars, model.predict(x).tolist()[0])), key=lambda x: x[1]))
+    print(pred)
 
-    max_value = pred[0]
-    max_index = 0
+    char, max_prob = pred[-1]
 
-    for i in range(1, len(pred)):
-        if pred[i] > max_value:
-            max_value = pred[i]
-            max_index = i
-
-    plt.gcf().set_size_inches((20,2))
-    print(f"src img: {img_file.name.split("_")[0] }\t detected: {chars[max_index]}")
+    print(f"src img: {img_file.name.split("_")[0] }\t detected: {char} with pedict {max_prob*100}%\tCorrect: {img_file.name.split("_")[0] == char}")
