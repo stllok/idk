@@ -13,12 +13,14 @@ import threading
 from tqdm import tqdm
 import random
 import re
-
+import json
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import load_img, ImageDataGenerator
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.optimizers import *
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+
 
 
 from pathlib import Path
@@ -76,17 +78,17 @@ def process_and_save_images(n=10):
         for ImgFile in ImgFiles:
             image = cv2.imread(str(ImgFile), cv2.IMREAD_GRAYSCALE)
             cv2.imwrite(str(DstCharFolder / f"{ImgFile.stem}_0.png"), image)  # Save original image
-            transformed_images = [apply_random_transform(image) for _ in range(200)]
+            transformed_images = [apply_random_transform(image) for _ in range(0)]
             for i, transformed_image in enumerate(transformed_images):
                 DstImgFile = DstCharFolder / f"{ImgFile.stem}_{i + 1}.png"
                 cv2.imwrite(str(DstImgFile), transformed_image)
 
 
-process_and_save_images(5)
+process_and_save_images(20)
 
 Num_Classes = len(list( DstFolder.iterdir()))
 Image_Size = ( 300, 300 )
-Epochs = 25
+Epochs = 80
 Batch_Size = 8
 
 Train_Data_Genetor = ImageDataGenerator( rescale = 1./255, validation_split = 0.2,
@@ -112,24 +114,42 @@ Val_Generator = Train_Data_Genetor.flow_from_directory( DstFolder ,
                                                         subset = 'validation' )
 
 CNN = Sequential( name = 'CNN_Model' )
-CNN.add( Conv2D( 5, kernel_size = (2,2), padding = 'same',  activation='relu',
+CNN.add( Conv2D( 512, kernel_size = (3,3), padding = 'same',  activation='relu',
                  input_shape = (Image_Size[0],Image_Size[1],3), name = 'Convolution' ) )
-CNN.add( MaxPooling2D( pool_size = (2,2),  name = 'Pooling' ) )
-CNN.add( Flatten( name = 'Flatten' ) )
-CNN.add( Dropout( 0.5, name = 'Dropout_1') )
-CNN.add( Dense( 512, activation = 'relu', name = 'Dense' ) )
-CNN.add( Dropout( 0.5, name = 'Dropout_2') )
-CNN.add( Dense( Num_Classes, activation = 'relu', name = 'Softmax' ) )
+CNN.add(MaxPooling2D((2,2)))
+CNN.add(Conv2D(128,(3,3),activation='relu'))
+CNN.add(MaxPooling2D((2,2)))
+CNN.add(Dropout(0.5))
+CNN.add(Conv2D(128,(3,3),activation='relu'))
+
+CNN.add(Flatten())
+CNN.add(Dense(64,activation='relu'))
+CNN.add(Dense(Num_Classes ,activation='softmax'))
 CNN.summary()
 CNN.compile( optimizer = Adam(),
              loss = 'categorical_crossentropy',
              metrics = ['accuracy'] )
 
+early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+reduce_lr = ReduceLROnPlateau(monitor='val_loss',
+                             patience=3,
+                             # 3 epochs 內acc沒下降就要調整LR
+                             verbose=1,
+                             factor=0.5,
+                             # LR降為0.5
+                             min_lr=0.000001,
+                             # 最小 LR 到0.000001就不再下降
+                            mode="min"
+                             )
+
+
 History = CNN.fit( Train_Generator,
-                   steps_per_epoch = Train_Generator.samples//Batch_Size,
+                #    steps_per_epoch = Train_Generator.samples//Batch_Size,
                    validation_data = Val_Generator,
-                   validation_steps = Val_Generator.samples//Batch_Size,
-                   epochs = Epochs )
+                    callbacks=[reduce_lr,early_stop],
+                #    validation_steps = Val_Generator.samples//Batch_Size,
+                   epochs = Epochs,
+                  )
 
 Train_Accuracy = History.history['accuracy']
 Val_Accuracy = History.history['val_accuracy']
@@ -153,3 +173,6 @@ plt.title( 'Loss')
 plt.show()
 
 CNN.save( 'CNN_Model.keras' )
+
+with open("class.json", "w", encoding="utf8") as f:
+    f.write(json.dumps(list([x.name for x in DstFolder.iterdir()][::-1]), ensure_ascii=False))
